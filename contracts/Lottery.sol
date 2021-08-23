@@ -5,36 +5,45 @@ contract Lottery {
     address public organizer;
     address[] public participants;
 
-    function Lottery() public {
+    constructor() {
         organizer = msg.sender;
     }
 
-    function buyTicket() public payable {
+    function buyTicket() public notOwner payable {
         require(msg.value > .001 ether);
 
         participants.push(msg.sender);
     }
 
-    function drawLots() public onlyOwner payable {
-        require(players.length > 0);
+    function getParticipants() public view returns (address[]) {
+        return participants;
+    }
 
-        int winningIndex = random() % participants.length;
+    function drawLots() public onlyOwner payable {
+        require(participants.length > 0);
+
+        uint winningIndex = random() % participants.length;
         address winner = participants[winningIndex];
 
-        winner.transfer(this.balance);
+        winner.transfer(address(this).balance);
         resetState();
     }
 
     function random() private view returns (uint) {
-        return keccak256(block.blockhash(block.number - 1), now);
+        return uint(keccak256(abi.encodePacked(blockhash(block.number - 1), now)));
     }
 
     function resetState() private {
-        players = new address[](0); // Initial length is 0
+        participants = new address[](0); // Initial length is 0
     }
 
     modifier onlyOwner() {
         require(msg.sender == organizer);
+        _;
+    }
+
+    modifier notOwner() {
+        require(msg.sender != organizer);
         _;
     }
 }
